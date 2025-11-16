@@ -1,0 +1,5 @@
+aiohttp==3.10.11
+google_api_python_client==2.187.0
+ivrit==0.1.8
+protobuf==6.33.1
+python-dotenv==1.2.1
