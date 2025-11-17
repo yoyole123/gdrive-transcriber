@@ -3,3 +3,7 @@ google_api_python_client==2.187.0
 ivrit==0.1.8
 protobuf==6.33.1
 python-dotenv==1.2.1
+pytest==8.3.3  # for local tests
+# Added zoneinfo (stdlib) and retained dependencies; no change needed for modularization.
+# Suggest ensuring ffmpeg is installed on system / provided in Lambda layer if needed.
+tzdata==2024.1  # provide timezone data on Windows if missing
