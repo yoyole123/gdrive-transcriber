@@ -9,7 +9,7 @@ from typing import Dict, Any
 
 from .config import load_config
 from .drive import drive_service, list_audio_files, download_file, get_or_create_processed_folder, move_file_to_folder  # updated import
-from .audio import convert_to_mp3, split_mp3  # generic conversion
+from .audio import convert_to_mp3, split_mp3, split_mp3_by_size  # add size-based splitter
 from .model import load_model, transcribe_file
 from .emailer import send_transcription_email
 from .utils import sanitize_filename, generate_positive_personal_message  # updated import
@@ -115,8 +115,10 @@ async def process_drive_files(cfg) -> Dict[str, Any]:
                 seg_seconds=cfg.seg_seconds,
                 max_concurrency=cfg.max_segment_concurrency,
                 bypass_split=cfg.bypass_split,
-                splitter_fn=split_mp3,
+                splitter_fn=lambda src, pattern, seg_secs: split_mp3_by_size(src, pattern, cfg.max_segment_size, seg_secs),
                 max_segment_retries=cfg.max_segment_retries,
+                max_payload_size=cfg.max_payload_size,
+                max_split_depth=cfg.max_split_depth,
             )
         except Exception as e:
             print(f"Transcription failed {name}: {e}")

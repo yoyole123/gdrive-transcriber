@@ -42,6 +42,9 @@ class Config:
     languages: Dict[str, Dict[str, Any]]
     max_segment_retries: int  # how many retries after first attempt (total attempts = 1 + retries)
     balance_alert_value: float  # threshold below which we mark LOW BALANCE in subject
+    max_payload_size: int       # raw segment byte ceiling triggering split (default 9MB)
+    max_split_depth: int        # recursion depth when splitting oversized segments
+    max_segment_size: int       # initial segmentation size cap in bytes (default 8MB)
 
     @property
     def within_schedule_window(self) -> bool:
@@ -112,7 +115,7 @@ def load_config(path: Optional[str] = None) -> Config:
         runpod_endpoint_id=os.environ.get("RUNPOD_ENDPOINT_ID"),
         config_path=cfg_path,
         max_segment_concurrency=int(os.environ.get("MAX_SEGMENT_CONCURRENCY", "2")),
-        seg_seconds=int(os.environ.get("SEG_SECONDS", str(10*60))),
+        seg_seconds=int(os.environ.get("SEG_SECONDS", str(8*60))),
         skip_drive=os.environ.get("SKIP_DRIVE") == "1",
         bypass_split=os.environ.get("BYPASS_SPLIT") == "1",
         time_window_enabled=os.environ.get("TIME_WINDOW_ENABLED", "1") == "1",
@@ -124,4 +127,7 @@ def load_config(path: Optional[str] = None) -> Config:
         languages=languages,
         max_segment_retries=int(os.environ.get("MAX_SEGMENT_RETRIES", "2")),
         balance_alert_value=float(os.environ.get("BALANCE_ALERT_VALUE", "2")),
+        max_payload_size=int(os.environ.get("MAX_PAYLOAD_SIZE", str(9*1024*1024))),
+        max_split_depth=int(os.environ.get("MAX_SPLIT_DEPTH", "3")),
+        max_segment_size=int(os.environ.get("MAX_SEGMENT_SIZE", str(8*1024*1024))),
     )

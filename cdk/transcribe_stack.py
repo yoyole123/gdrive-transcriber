@@ -72,8 +72,9 @@ class TranscribeStack(cdk.Stack):
             "RUNPOD_API_KEY": os.getenv("RUNPOD_API_KEY", "CHANGE_ME"),
             "RUNPOD_ENDPOINT_ID": os.getenv("RUNPOD_ENDPOINT_ID", "CHANGE_ME"),
             "CONFIG_PATH": os.getenv("CONFIG_PATH", "config.json"),
-            "MAX_SEGMENT_CONCURRENCY": os.getenv("MAX_SEGMENT_CONCURRENCY", "3"),
-            "SEG_SECONDS": os.getenv("SEG_SECONDS", str(10 * 60)),
+            "MAX_SEGMENT_CONCURRENCY": os.getenv("MAX_SEGMENT_CONCURRENCY", "4"),
+            "SEG_SECONDS": os.getenv("SEG_SECONDS", str(7 * 60)),
+            "MAX_SEGMENT_SIZE": os.getenv("MAX_SEGMENT_SIZE", str(8 * 1024 * 1024)),
             "TIME_WINDOW_ENABLED": os.getenv("TIME_WINDOW_ENABLED", "1"),
             "SCHEDULE_START_HOUR": os.getenv("SCHEDULE_START_HOUR", "8"),
             "SCHEDULE_END_HOUR": os.getenv("SCHEDULE_END_HOUR", "22"),
@@ -82,10 +83,12 @@ class TranscribeStack(cdk.Stack):
             "SKIP_DRIVE": os.getenv("SKIP_DRIVE", "0"),
             "BYPASS_SPLIT": os.getenv("BYPASS_SPLIT", "0"),
             "FFMPEG_PATH": os.getenv("FFMPEG_PATH", "/opt/bin/ffmpeg"),
-            "MAX_SEGMENT_RETRIES": os.getenv("MAX_SEGMENT_RETRIES", "1"),
+            "MAX_SEGMENT_RETRIES": os.getenv("MAX_SEGMENT_RETRIES", "2"),
             "BALANCE_ALERT_VALUE": os.getenv("BALANCE_ALERT_VALUE", "2"),
-            # Fun personal message feature default enabled (1=true)
             "ADD_RANDOM_PERSONAL_MESSAGE": os.getenv("ADD_RANDOM_PERSONAL_MESSAGE", "1"),
+            # New recursive payload splitting controls
+            "MAX_PAYLOAD_SIZE": os.getenv("MAX_PAYLOAD_SIZE", str(9 * 1024 * 1024)),  # 9MB default
+            "MAX_SPLIT_DEPTH": os.getenv("MAX_SPLIT_DEPTH", "3"),
         }
 
         lambda_fn = _lambda.Function(
@@ -95,7 +98,7 @@ class TranscribeStack(cdk.Stack):
             handler="transcriber.lambda_handler.lambda_handler",
             code=_lambda.Code.from_asset(project_root, bundling=app_bundling),
             timeout=Duration.minutes(15),
-            memory_size=1024,
+            memory_size=2048,
             environment=env_vars,
             layers=[ffmpeg_layer],
         )
