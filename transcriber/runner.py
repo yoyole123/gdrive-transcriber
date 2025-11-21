@@ -8,8 +8,8 @@ from datetime import datetime, timezone
 from typing import Dict, Any
 
 from .config import load_config
-from .drive import drive_service, list_m4a_files, download_file, get_or_create_processed_folder, move_file_to_folder
-from .audio import convert_m4a_to_mp3, split_mp3
+from .drive import drive_service, list_audio_files, download_file, get_or_create_processed_folder, move_file_to_folder  # updated import
+from .audio import convert_to_mp3, split_mp3  # generic conversion
 from .model import load_model, transcribe_file
 from .emailer import send_transcription_email
 from .utils import sanitize_filename, generate_positive_personal_message  # updated import
@@ -65,11 +65,12 @@ async def process_drive_files(cfg) -> Dict[str, Any]:
     except Exception as e:
         return {"error": "auth_drive_failed", "detail": str(e)}
     try:
-        files = list_m4a_files(drive_svc, cfg.drive_folder_id, cfg.skip_drive)
+        # Generic audio listing (extensions configurable via AUDIO_EXTENSIONS env var)
+        files = list_audio_files(drive_svc, cfg.drive_folder_id, cfg.skip_drive)
     except Exception as e:
         return {"error": "drive_list_failed", "detail": str(e)}
     if not files:
-        print("No .m4a files found.")
+        print("No audio files found.")
         return {"status": "no audio files found", "total_files": 0}
     processed_folder_id = get_or_create_processed_folder(drive_svc, cfg.drive_folder_id, cfg.skip_drive)
     if not processed_folder_id:
@@ -92,16 +93,16 @@ async def process_drive_files(cfg) -> Dict[str, Any]:
         ts_dir_name = dt.strftime("%Y-%m-%d_%H-%M")
         work_dir = os.path.join(TEMP_DIR, fid)
         os.makedirs(work_dir, exist_ok=True)
-        m4a_path = os.path.join(work_dir, name)
-        mp3_full = os.path.join(work_dir, name + ".mp3")
+        audio_input_path = os.path.join(work_dir, name)  # original downloaded file
+        mp3_full = os.path.join(work_dir, os.path.splitext(name)[0] + ".mp3")
         try:
-            download_file(drive_svc, fid, m4a_path, cfg.skip_drive)
+            download_file(drive_svc, fid, audio_input_path, cfg.skip_drive)
         except Exception as e:
             print(f"Download failed {fid}: {e}")
             summaries.append({"id": fid, "name": name, "error": f"download_failed: {e}"})
             continue
         try:
-            convert_m4a_to_mp3(m4a_path, mp3_full)
+            convert_to_mp3(audio_input_path, mp3_full)
         except Exception as e:
             print(f"Conversion failed {name}: {e}")
             summaries.append({"id": fid, "name": name, "error": f"conversion_failed: {e}"})

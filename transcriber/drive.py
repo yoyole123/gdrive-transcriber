@@ -11,6 +11,13 @@ from googleapiclient.errors import HttpError
 
 PROCESSED_FOLDER_ID_CACHE = None
 
+# New: configurable audio extensions (comma-separated)
+_DEF_AUDIO_EXT = ".m4a,.wav,.mp3,.ogg,.flac,.aac,.wma,.m4b,.aiff,.aif,.opus"
+AUDIO_EXTENSIONS = {
+    e if e.startswith('.') else f'.{e}'
+    for e in (os.environ.get("AUDIO_EXTENSIONS", _DEF_AUDIO_EXT).lower().split(',')) if e.strip()
+}
+
 
 def _resolve_service_account_path(service_account_file: str | None) -> str | None:
     candidates = []
@@ -47,13 +54,15 @@ def drive_service(skip_drive: bool, service_account_file: str | None):
         raise RuntimeError(f"Credential refresh failed: {e}")
     return build("drive", "v3", credentials=creds, cache_discovery=False)
 
+# New generic audio file listing
 
-def list_m4a_files(service, drive_folder_id: str, skip_drive: bool):
+def list_audio_files(service, drive_folder_id: str, skip_drive: bool):
+    """List audio files with configured extensions in given Drive folder."""
     if skip_drive:
         return []
+    # Broad query; filter locally for simplicity & extensibility.
     q = (
         f"'{drive_folder_id}' in parents "
-        "and (name contains '.m4a' or name contains '.M4A') "
         "and mimeType != 'application/vnd.google-apps.folder' "
         "and trashed = false"
     )
@@ -61,7 +70,23 @@ def list_m4a_files(service, drive_folder_id: str, skip_drive: bool):
         res = service.files().list(q=q, fields="files(id,name,createdTime)").execute()
     except HttpError as e:
         raise RuntimeError(f"Drive list error: {e}")
-    return res.get("files", [])
+    files = res.get("files", [])
+    out = []
+    for f in files:
+        name = f.get("name", "")
+        ext = os.path.splitext(name)[1].lower()
+        if ext in AUDIO_EXTENSIONS:
+            out.append(f)
+    return out
+
+# Backward compatibility: old function now delegates to new generic version but limits to .m4a
+
+def list_m4a_files(service, drive_folder_id: str, skip_drive: bool):
+    if skip_drive:
+        return []
+    # Use generic listing then filter to .m4a only to retain older behavior when called elsewhere.
+    all_audio = list_audio_files(service, drive_folder_id, skip_drive)
+    return [f for f in all_audio if os.path.splitext(f.get("name",""))[1].lower() in {".m4a"}]
 
 
 def download_file(service, file_id, dst_path, skip_drive: bool):
@@ -117,4 +142,3 @@ def move_file_to_folder(service, file_id, new_parent_id, old_parent_id, skip_dri
         ).execute()
     except HttpError as e:
         print(f"Warning: Failed to move file {file_id} to folder {new_parent_id}: {e}")
-
