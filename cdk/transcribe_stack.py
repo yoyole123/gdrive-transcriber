@@ -93,6 +93,7 @@ class TranscribeStack(cdk.Stack):
             # New recursive payload splitting controls
             "MAX_PAYLOAD_SIZE": os.getenv("MAX_PAYLOAD_SIZE", str(9 * 1024 * 1024)),  # 9MB default
             "MAX_SPLIT_DEPTH": os.getenv("MAX_SPLIT_DEPTH", "3"),
+            "TRANSCRIPTION_LANGUAGE": os.getenv("TRANSCRIPTION_LANGUAGE", "en"),
         }
 
         lambda_fn = _lambda.Function(

@@ -44,6 +44,9 @@ from .constants import (
     DEFAULT_SMTP_SERVER,
     DEFAULT_SMTP_PORT,
     DEFAULT_SMTP_USE_SSL,
+    # Transcription language selection
+    ENV_TRANSCRIPTION_LANGUAGE,
+    DEFAULT_TRANSCRIPTION_LANGUAGE,
 )
 
 from dotenv import load_dotenv
@@ -87,6 +90,7 @@ class Config:
     max_payload_size: int       # raw segment byte ceiling triggering split (default 9MB)
     max_split_depth: int        # recursion depth when splitting oversized segments
     max_segment_size: int       # initial segmentation size cap in bytes (default 8MB)
+    transcription_language: str
 
     @property
     def within_schedule_window(self) -> bool:
@@ -176,6 +180,11 @@ def load_config(path: Optional[str] = None) -> Config:
     else:
         smtp_use_ssl = smtp_use_ssl_env.strip().lower() not in {"0", "false", "no", "off"}
 
+    # Decide which language key to use for transcription.
+    # Default is English ("en") for international users, but any key present
+    # in the config languages mapping is allowed.
+    transcription_language = os.environ.get(ENV_TRANSCRIPTION_LANGUAGE, DEFAULT_TRANSCRIPTION_LANGUAGE)
+
     return Config(
         service_account_file=os.environ.get(ENV_SERVICE_ACCOUNT_FILE),
         drive_folder_id=os.environ.get(ENV_DRIVE_FOLDER_ID),
@@ -204,4 +213,5 @@ def load_config(path: Optional[str] = None) -> Config:
         max_payload_size=int(os.environ.get(ENV_MAX_PAYLOAD_SIZE, str(9 * 1024 * 1024))),
         max_split_depth=int(os.environ.get(ENV_MAX_SPLIT_DEPTH, "3")),
         max_segment_size=int(os.environ.get(ENV_MAX_SEGMENT_SIZE, str(8 * 1024 * 1024))),
+        transcription_language=transcription_language,
     )

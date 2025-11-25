@@ -87,7 +87,7 @@ async def process_drive_files(cfg: Config) -> Dict[str, Any]:
     if not processed_folder_id:
         return {"error": "drive_processed_folder_failure", "detail": "Could not find or create 'processed' folder."}
     try:
-        model = load_model(cfg.runpod_api_key, cfg.runpod_endpoint_id, cfg.languages, language="he")
+        model = load_model(cfg.runpod_api_key, cfg.runpod_endpoint_id, cfg.languages, language=cfg.transcription_language)
     except Exception as e:
         return {"error": "model_load_failed", "detail": str(e)}
 
