@@ -50,7 +50,7 @@ async def fetch_runpod_balance(api_key: str | None) -> Optional[Dict[str, Any]]:
                 data = await resp.json()
                 if "errors" in data:
                     return None
-                myself = data.get("data", {}).get("myself", {})
+                myself: dict = data.get("data", {}).get("myself", {})
                 return {
                     "clientBalance": myself.get("clientBalance"),
                     "currentSpendPerHr": myself.get("currentSpendPerHr"),
@@ -77,7 +77,7 @@ async def process_drive_files(cfg: Config) -> Dict[str, Any]:
     except Exception as e:
         return {"error": "auth_drive_failed", "detail": str(e)}
     try:
-        files = list_audio_files(drive_svc, cfg.drive_folder_id, cfg.skip_drive)
+        files: List[Dict[str, Any]] = list_audio_files(drive_svc, cfg.drive_folder_id, cfg.skip_drive)
     except Exception as e:
         return {"error": "drive_list_failed", "detail": str(e)}
     if not files:
@@ -214,7 +214,6 @@ async def run() -> Dict[str, Any]:
 
 
 def main() -> Dict[str, Any]:
-    """CLI entrypoint for local runs with logging of results."""
     logger.info("Starting scheduled Drive transcription run (local CLI)...")
     result = asyncio.run(run())
     logger.info("Run result:\n%s", json.dumps(result, indent=2, ensure_ascii=False))

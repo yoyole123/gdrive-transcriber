@@ -17,6 +17,10 @@ from .constants import (
     ENV_EMAIL_TO,
     ENV_GMAIL_SENDER_EMAIL,
     ENV_GMAIL_APP_PASSWORD,
+    # New generic SMTP settings
+    ENV_SMTP_SERVER,
+    ENV_SMTP_PORT,
+    ENV_SMTP_USE_SSL,
     ENV_RUNPOD_API_KEY,
     ENV_RUNPOD_ENDPOINT_ID,
     ENV_CONFIG_PATH,
@@ -36,14 +40,14 @@ from .constants import (
     ENV_MAX_SEGMENT_SIZE,
     DEFAULT_CONFIG_PATH_REL,
     ENV_ADD_RANDOM_PERSONAL_MESSAGE,
+    # Defaults for SMTP when env vars are not set
+    DEFAULT_SMTP_SERVER,
+    DEFAULT_SMTP_PORT,
+    DEFAULT_SMTP_USE_SSL,
 )
 
-try:
-    # dotenv is optional in Lambda; locally it's helpful
-    from dotenv import load_dotenv
-    load_dotenv()
-except Exception:
-    pass  # dotenv optional in Lambda
+from dotenv import load_dotenv
+load_dotenv()
 
 # Default config path: env override or repo root config.json
 DEFAULT_CONFIG_PATH = os.environ.get(
@@ -60,6 +64,10 @@ class Config:
     email_to: Optional[str]
     gmail_sender_email: Optional[str]
     gmail_app_password: Optional[str]
+    # Generic SMTP settings (server/port/SSL) to avoid hard-coding Gmail
+    smtp_server: str
+    smtp_port: int
+    smtp_use_ssl: bool
     runpod_api_key: Optional[str]
     runpod_endpoint_id: Optional[str]
     config_path: str
@@ -155,12 +163,28 @@ def load_config(path: Optional[str] = None) -> Config:
             languages = file_cfg.get('languages', {})
         except Exception:
             languages = {}
+    # Parse SMTP settings with sensible defaults pointing at Gmail but overridable
+    smtp_server = os.environ.get(ENV_SMTP_SERVER, DEFAULT_SMTP_SERVER)
+    try:
+        smtp_port = int(os.environ.get(ENV_SMTP_PORT, str(DEFAULT_SMTP_PORT)))
+    except ValueError:
+        smtp_port = DEFAULT_SMTP_PORT
+    # If SMTP_USE_SSL is not set, default to DEFAULT_SMTP_USE_SSL
+    smtp_use_ssl_env = os.environ.get(ENV_SMTP_USE_SSL)
+    if smtp_use_ssl_env is None:
+        smtp_use_ssl = DEFAULT_SMTP_USE_SSL
+    else:
+        smtp_use_ssl = smtp_use_ssl_env.strip().lower() not in {"0", "false", "no", "off"}
+
     return Config(
         service_account_file=os.environ.get(ENV_SERVICE_ACCOUNT_FILE),
         drive_folder_id=os.environ.get(ENV_DRIVE_FOLDER_ID),
         email_to=os.environ.get(ENV_EMAIL_TO),
         gmail_sender_email=os.environ.get(ENV_GMAIL_SENDER_EMAIL),
         gmail_app_password=os.environ.get(ENV_GMAIL_APP_PASSWORD),
+        smtp_server=smtp_server,
+        smtp_port=smtp_port,
+        smtp_use_ssl=smtp_use_ssl,
         runpod_api_key=os.environ.get(ENV_RUNPOD_API_KEY),
         runpod_endpoint_id=os.environ.get(ENV_RUNPOD_ENDPOINT_ID),
         config_path=cfg_path,

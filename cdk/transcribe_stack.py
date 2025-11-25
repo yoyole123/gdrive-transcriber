@@ -69,6 +69,10 @@ class TranscribeStack(cdk.Stack):
             "EMAIL_TO": os.getenv("EMAIL_TO", "CHANGE_ME"),
             "GMAIL_SENDER_EMAIL": os.getenv("GMAIL_SENDER_EMAIL", "CHANGE_ME"),
             "GMAIL_APP_PASSWORD": os.getenv("GMAIL_APP_PASSWORD", "CHANGE_ME"),
+            # New SMTP configuration (Gmail defaults, overridable for other providers)
+            "SMTP_SERVER": os.getenv("SMTP_SERVER", "smtp.gmail.com"),
+            "SMTP_PORT": os.getenv("SMTP_PORT", "465"),
+            "SMTP_USE_SSL": os.getenv("SMTP_USE_SSL", "1"),
             "RUNPOD_API_KEY": os.getenv("RUNPOD_API_KEY", "CHANGE_ME"),
             "RUNPOD_ENDPOINT_ID": os.getenv("RUNPOD_ENDPOINT_ID", "CHANGE_ME"),
             "CONFIG_PATH": os.getenv("CONFIG_PATH", "config.json"),
