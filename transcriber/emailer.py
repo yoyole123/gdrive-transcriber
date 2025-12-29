@@ -6,8 +6,24 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
+from email.utils import encode_rfc2231
 from . import logger
 from .config import Config
+
+
+def _attachment_filename_from_path(path: str) -> str:
+    """Return a safe attachment filename for email clients.
+
+    Some mail clients ignore/strip the filename unless it's provided in a
+    standards-compliant way. We always ensure a non-empty *.txt name.
+    """
+    base = os.path.basename(path) or "transcription.txt"
+    root, ext = os.path.splitext(base)
+    if not root:
+        root = "transcription"
+    if not ext:
+        ext = ".txt"
+    return f"{root}{ext}"
 
 
 def send_transcription_email(
@@ -38,11 +54,31 @@ def send_transcription_email(
     message.attach(MIMEText(body_text, "plain", "utf-8"))
 
     if attachment_path and os.path.exists(attachment_path):
-        part = MIMEBase('application', 'octet-stream')
-        with open(attachment_path, 'rb') as f:
-            part.set_payload(f.read())
-        encoders.encode_base64(part)
-        part.add_header('Content-Disposition', f'attachment; filename="{os.path.basename(attachment_path)}"')
+        filename = _attachment_filename_from_path(attachment_path)
+
+        # Use a text MIME part so clients recognize it as a text file.
+        # Also set Content-Disposition with both filename= (ASCII fallback) and
+        # filename*= (RFC 2231) so more clients display the name correctly.
+        with open(attachment_path, "r", encoding="utf-8", errors="replace") as f:
+            attachment_text = f.read()
+
+        part = MIMEText(attachment_text, _subtype="plain", _charset="utf-8")
+
+        # Always include a simple filename= parameter (many clients rely on it).
+        part.add_header("Content-Disposition", "attachment", filename=filename)
+
+        # Add filename*= as well (RFC 2231). Some clients prefer this for UTF-8.
+        try:
+            existing = part.get("Content-Disposition")
+            encoded = encode_rfc2231(filename, "utf-8")
+            if existing:
+                part.replace_header(
+                    "Content-Disposition",
+                    f"{existing}; filename*=utf-8''{encoded}"
+                )
+        except Exception:
+            pass
+
         message.attach(part)
 
     # Decide SMTP connection parameters
